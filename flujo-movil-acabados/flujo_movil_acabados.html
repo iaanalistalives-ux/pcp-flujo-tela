@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LIVES · Flujo Móvil de Acabados</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--petrol:#0E3B36;--emer:#10B981;--sage:#0F7A5A;--sage-dark:#0B815E;--slate:#4E6B78;
+--taupe:#B45309;--rose:#DC2626;--tan:#F59E0B;--warm:#DCE5E2;--warm-light:#F1F6F4;--stone:#5F726C;}
+body{margin:0;background:#F1F6F4;color:#333;font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4;}
+.header{background:var(--petrol);border-bottom:3px solid var(--emer);min-height:72px;display:flex;align-items:center;padding:0 24px;gap:18px;flex-wrap:wrap;}
+.header svg{height:30px;display:block;}
+.divider{width:1px;height:34px;background:rgba(255,255,255,.35);}
+.htitle{color:#fff;font-size:17px;font-weight:700;letter-spacing:.3px;}
+.hsub{color:#F1F6F4;font-size:12px;}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 24px 60px;}
+.drop{border:2px dashed var(--warm);border-radius:10px;background:#fff;padding:40px 24px;text-align:center;cursor:pointer;transition:.15s;}
+.drop:hover,.drop.over{border-color:var(--sage);background:var(--warm-light);}
+.drop .big{font-size:16px;font-weight:700;margin-bottom:4px;}
+.drop .sm{font-size:12.5px;color:var(--stone);}
+.btn{background:var(--sage);color:#fff;font-weight:700;font-family:inherit;font-size:13px;border:none;border-radius:6px;padding:9px 18px;cursor:pointer;margin-top:12px;}
+.bar{display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--warm-light);}
+.bar .fname{font-size:12.5px;color:var(--stone);}.bar .fname b{color:#333;}
+.bar .btn{margin-top:0;background:#fff;border:1px solid var(--warm);color:var(--sage);}
+.bar .btn.solid{background:var(--sage);color:#fff;border-color:var(--sage);}
+.err{display:none;background:#FBE9E9;border:1px solid var(--rose);border-radius:8px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:16px;}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.kpi{background:#fff;border:1px solid var(--warm);border-radius:8px;padding:16px 18px;flex:1;min-width:150px;}
+.kpi .v{font-size:28px;font-weight:700;color:var(--sage);line-height:1.1;}
+.kpi .l{font-size:12.5px;margin-top:4px;font-weight:600;}
+.kpi .s{font-size:11px;color:var(--stone);margin-top:2px;}
+.kpi.primary{border:2px solid var(--sage);}.kpi.primary .v{font-size:34px;}
+.kpi.meta .v{color:var(--tan);}.kpi.alert .v{color:var(--rose);}
+.panel{background:#fff;border:1px solid var(--warm);border-radius:8px;padding:16px 18px;margin-bottom:18px;}
+.panel .pt{font-size:15px;font-weight:700;}
+.panel .ph{font-size:11.5px;color:var(--stone);margin-top:2px;margin-bottom:10px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:760px){.grid2{grid-template-columns:1fr;}}
+.cwrap{position:relative;width:100%;}
+.sectitle{font-size:17px;font-weight:700;color:var(--sage-dark);margin:26px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--warm-light);}
+.note{background:#fff;border:1px solid var(--warm);border-left:4px solid var(--tan);border-radius:6px;padding:10px 14px;font-size:11.5px;color:var(--stone);margin-bottom:18px;line-height:1.5;}
+.note.bad{border-left-color:var(--rose);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th,td{padding:6px 8px;border-bottom:1px solid var(--warm-light);text-align:right;}
+th:first-child,td:first-child{text-align:left;}
+thead th{background:var(--warm-light);color:var(--stone);font-weight:700;position:sticky;top:0;z-index:2;}
+tbody tr:hover{background:#FAFCFB;}
+td.neg{color:var(--rose);font-weight:700;}td.pos{color:var(--sage);font-weight:700;}
+.tblwrap{max-height:420px;overflow:auto;border:1px solid var(--warm-light);border-radius:6px;}
+.params{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;background:var(--warm-light);border-radius:8px;padding:12px 14px;margin-bottom:18px;}
+.params .p{display:flex;flex-direction:column;gap:4px;}
+.params label{font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px;}
+.params input,.params select{font-family:inherit;font-size:13.5px;font-weight:700;color:var(--sage);border:1.5px solid var(--sage);border-radius:6px;padding:6px 10px;background:#fff;}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:#E7F3EE;color:var(--sage);}
+#dash{display:none;}
+@media print{@page{size:A4 portrait;margin:11mm;}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+.no-print,#drop,#bar,#err{display:none!important;}
+body.print-dash .panel,body.print-dash .kpi,body.print-dash table,body.print-dash .cwrap{break-inside:avoid;}
+body.print-dash .sectitle{break-after:avoid;margin-top:6px;}
+body.print-dash canvas{max-width:100%!important;height:auto!important;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="256 892 1070 285" fill="#FFFFFF">
+  <path d="
+M922.000000,969.000000 
+	C922.003723,955.001160 921.967468,941.502197 922.029236,928.003601 
+	C922.057251,921.870911 922.871948,921.032715 929.002319,921.028259 
+	C974.331726,920.995361 1019.661072,920.995422 1064.990479,921.028259 
+	C1071.122559,921.032654 1071.856201,921.876892 1071.986694,927.998962 
+	C1072.220337,938.949707 1072.175903,938.998169 1060.993408,938.999207 
+	C1027.829590,939.002258 994.665833,938.992371 961.502014,939.009338 
+	C953.449402,939.013428 953.014526,939.451599 953.007629,947.502258 
+	C952.988586,969.666992 952.984802,991.831787 953.012085,1013.996521 
+	C953.021179,1021.404907 953.592896,1021.979370 961.000854,1021.986084 
+	C989.165100,1022.011536 1017.329285,1021.993958 1045.493530,1022.003601 
+	C1054.576538,1022.006714 1057.366943,1025.554443 1054.560913,1034.424194 
+	C1054.052246,1036.032227 1050.937744,1037.752197 1048.978271,1037.810303 
+	C1037.822144,1038.141724 1026.651611,1037.989746 1015.485962,1037.993286 
+	C997.154236,1037.999146 978.822388,1037.972534 960.490784,1038.014038 
+	C953.732666,1038.029297 953.026550,1038.731934 953.018250,1045.510620 
+	C952.985718,1072.174927 952.985596,1098.839355 953.018555,1125.503662 
+	C953.026917,1132.270874 953.734497,1132.980225 960.505066,1132.986450 
+	C994.668762,1133.017944 1028.832886,1132.944458 1062.995605,1133.118286 
+	C1065.835327,1133.132690 1070.872925,1134.319946 1071.106201,1135.633789 
+	C1071.948242,1140.376343 1071.449951,1145.446777 1070.739502,1150.288086 
+	C1070.617676,1151.119019 1066.993042,1151.892456 1064.977539,1151.915405 
+	C1051.980347,1152.063965 1038.980713,1151.999023 1025.981812,1151.999390 
+	C994.151245,1152.000244 962.320618,1152.008179 930.490051,1151.991211 
+	C922.450195,1151.986816 922.011047,1151.548828 922.009277,1143.484619 
+	C921.996216,1085.489746 922.000916,1027.494873 922.000000,969.000000 
+z"/>
+  <path d="
+M1256.371826,929.606079 
+	C1268.946411,937.231934 1277.884644,947.439087 1282.435791,961.161072 
+	C1284.607178,967.707458 1283.630859,968.602661 1276.903442,969.057983 
+	C1267.447388,969.697876 1259.984253,969.504395 1257.139648,957.198364 
+	C1254.540161,945.952820 1244.487061,940.064331 1233.806030,936.471130 
+	C1213.883789,929.769226 1194.237915,929.839355 1175.095947,939.432617 
+	C1163.825073,945.080994 1156.191284,953.316772 1155.006226,966.515808 
+	C1153.711426,980.936768 1160.739868,990.461731 1172.342407,997.777100 
+	C1189.302124,1008.470215 1208.214111,1014.497620 1226.890747,1021.084167 
+	C1242.068481,1026.436890 1256.258545,1033.445190 1269.259644,1043.089600 
+	C1305.998535,1070.343018 1298.081299,1125.317993 1259.652954,1145.170776 
+	C1245.750366,1152.353149 1230.879395,1155.423950 1215.392578,1155.985962 
+	C1199.309326,1156.569580 1183.444336,1155.447388 1168.091797,1150.020752 
+	C1149.534058,1143.461060 1133.989014,1133.213135 1125.519165,1114.696411 
+	C1123.338135,1109.928345 1122.318604,1104.568481 1121.225098,1099.383545 
+	C1120.391113,1095.428711 1122.106689,1092.880859 1126.585205,1093.038086 
+	C1126.751465,1093.043945 1126.918579,1093.021484 1127.084961,1093.026733 
+	C1131.902344,1093.178223 1137.725830,1091.744019 1141.231812,1093.966187 
+	C1144.263306,1095.887573 1144.829346,1101.909668 1146.194458,1106.211304 
+	C1150.757690,1120.590942 1160.325562,1130.529175 1174.282959,1135.353149 
+	C1198.470215,1143.712769 1222.660522,1143.713135 1246.167114,1132.377930 
+	C1254.947266,1128.144043 1260.783691,1121.105469 1262.737183,1111.625244 
+	C1266.852661,1091.652100 1262.434692,1077.169067 1244.663452,1064.733765 
+	C1231.644531,1055.623901 1216.843750,1050.589478 1202.282715,1044.842407 
+	C1188.217285,1039.291016 1174.019897,1033.849365 1160.598145,1026.960938 
+	C1149.133667,1021.077148 1138.935913,1012.717529 1134.008423,1000.155212 
+	C1123.727905,973.944702 1130.833496,940.327393 1163.224609,925.874573 
+	C1194.404785,911.962097 1225.692383,913.162109 1256.371826,929.606079 
+z"/>
+  <path d="
+M689.711609,964.261353 
+	C706.209290,1003.806580 722.545410,1043.004028 738.893494,1082.196289 
+	C742.589050,1091.055908 746.326721,1099.897949 750.632629,1110.146606 
+	C752.219177,1107.257080 753.274353,1105.719360 753.959412,1104.031372 
+	C771.245605,1061.439331 788.483765,1018.827698 805.752197,976.228394 
+	C812.258728,960.177490 819.031311,944.229797 825.237915,928.064331 
+	C827.323975,922.630859 830.379395,920.715332 836.056030,920.895020 
+	C846.347656,921.220825 846.284241,920.924133 842.466858,930.332520 
+	C825.372681,972.463135 808.339417,1014.618530 791.256714,1056.753906 
+	C779.242920,1086.386475 767.102966,1115.968628 755.233765,1145.658936 
+	C753.421631,1150.191895 750.980103,1152.172119 746.015259,1152.072754 
+	C729.620483,1151.744751 732.478699,1153.512695 726.528137,1139.312622 
+	C696.857300,1068.507690 667.158264,997.714600 637.462891,926.919922 
+	C635.370056,921.930664 635.840881,921.080811 641.271423,921.031555 
+	C649.600464,920.955994 657.932068,921.107117 666.259949,920.983948 
+	C670.106689,920.927063 672.419617,922.471252 673.876526,926.066284 
+	C679.004639,938.721069 684.313843,951.302490 689.711609,964.261353 
+z"/>
+  <path d="
+M276.004944,1003.000000 
+	C276.006287,978.002014 275.991669,953.503967 276.018494,929.005981 
+	C276.026611,921.599487 276.604797,921.047546 284.006927,921.011902 
+	C289.839417,920.983887 295.672577,921.070984 301.504852,921.028931 
+	C305.258301,921.001892 307.037170,922.775513 306.964142,926.514954 
+	C306.925079,928.513611 306.995880,930.514099 306.995941,932.513794 
+	C306.998474,996.175293 306.995514,1059.836792 307.001709,1123.498291 
+	C307.002594,1132.883789 307.119720,1132.999146 316.499573,1133.001587 
+	C350.163483,1133.010620 383.827423,1132.997559 417.491333,1133.014893 
+	C425.546356,1133.019043 425.956146,1133.466675 425.996490,1141.504761 
+	C426.001526,1142.504639 426.005341,1143.504639 425.991669,1144.504395 
+	C425.899017,1151.267822 425.267242,1151.977173 418.490265,1151.980957 
+	C373.493958,1152.005981 328.497620,1152.006104 283.501312,1151.980713 
+	C276.739044,1151.976807 276.028229,1151.264160 276.024353,1144.488403 
+	C275.997498,1097.492310 276.007050,1050.496094 276.004944,1003.000000 
+z"/>
+  <path d="
+M546.000000,979.000000 
+	C545.999634,1033.996460 546.003662,1088.492798 545.994385,1142.989258 
+	C545.992920,1151.704834 545.706116,1151.977539 537.006348,1151.994263 
+	C531.506958,1152.004761 526.007080,1151.928589 520.508057,1151.971191 
+	C516.761414,1152.000244 514.955139,1150.242065 515.040100,1146.495850 
+	C515.070312,1145.163818 515.006042,1143.829834 515.005981,1142.496826 
+	C515.003967,1071.834839 515.001526,1001.172791 515.007141,930.510742 
+	C515.007874,921.118774 515.122803,921.017517 524.499512,921.002991 
+	C529.499146,920.995239 534.504211,921.157715 539.496887,920.974487 
+	C544.198853,920.801941 546.068481,922.808105 546.034180,927.503723 
+	C545.909973,944.501709 545.994324,961.501099 546.000000,979.000000 
+z"/>
+</svg>
+  <div class="divider"></div>
+  <div><div class="htitle">Flujo Móvil de Acabados</div>
+  <div class="hsub">Producción diaria · encajado propio y servicios vs flujo mínimo requerido</div></div>
+</div>
+
+<div class="wrap">
+  <div class="err" id="err"></div>
+
+  <div id="drop" class="drop">
+    <div class="big">Arrastra aquí el Excel de flujo móvil (o haz clic)</div>
+    <div class="sm">Hoja <b>Produccion Diaria</b> — columnas FECHA, FACTOR, Pdas Encaj. Propias / Servicios, Prendas Despachadas, FLUJO MINIMO</div>
+    <button class="btn" type="button">Seleccionar archivo</button>
+    <input type="file" id="finput" accept=".xlsx,.xlsm" style="display:none">
+  </div>
+
+  <div id="dash">
+    <div class="bar" id="bar">
+      <div class="fname">Fuente: <b id="fn">—</b></div>
+      <button class="btn" id="reload">Cambiar archivo</button>
+      <button class="btn" id="csv">Descargar detalle (CSV)</button>
+      <button class="btn solid" id="share">Exportar dashboard interactivo</button>
+      <button class="btn" id="print">Imprimir A4</button>
+    </div>
+
+    <div class="params no-print">
+      <div class="p"><label>Flujo mínimo (prendas/día)</label><input type="number" id="pMeta" style="width:120px"></div>
+      <div class="p"><label>Ventana móvil (días)</label><input type="number" id="pVent" value="6" style="width:90px"></div>
+      <div class="p"><label>Desde</label><input type="date" id="pD1"></div>
+      <div class="p"><label>Hasta</label><input type="date" id="pD2"></div>
+      <button class="btn" style="margin-top:0" id="recalc">Recalcular</button>
+      <button class="btn" style="margin-top:0;background:#fff;border:1px solid var(--warm);color:var(--sage)" id="bAll">Todo el periodo</button>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi primary"><div class="v" id="kFM">—</div><div class="l">Flujo móvil actual</div><div class="s" id="kFMs">—</div></div>
+      <div class="kpi meta"><div class="v" id="kMeta">—</div><div class="l">Flujo mínimo requerido</div><div class="s">prendas/día equivalente</div></div>
+      <div class="kpi alert"><div class="v" id="kGap">—</div><div class="l">Brecha vs meta</div><div class="s" id="kGaps">—</div></div>
+      <div class="kpi"><div class="v" id="kCump">—</div><div class="l">Días sobre la meta</div><div class="s" id="kCumps">—</div></div>
+      <div class="kpi"><div class="v" id="kEnc">—</div><div class="l">Prendas encajadas</div><div class="s" id="kEncs">—</div></div>
+      <div class="kpi"><div class="v" id="kBack">—</div><div class="l">Encajado − despachado</div><div class="s">stock que quedó en acabados</div></div>
+    </div>
+
+    <div class="note" id="qa"></div>
+
+    <div class="sectitle">1 · Flujo móvil vs flujo mínimo</div>
+    <div class="panel">
+      <div class="pt">La curva que decide si acabados llega o no llega</div>
+      <div class="ph">Flujo móvil = prendas encajadas de los últimos <span id="ventTxt">6</span> días ÷ suma de factores (sábado y domingo cuentan 0.5). Zona roja = por debajo del flujo mínimo.</div>
+      <div class="cwrap" style="height:330px"><canvas id="c1"></canvas></div>
+    </div>
+
+    <div class="sectitle">2 · Producción diaria</div>
+    <div class="panel">
+      <div class="pt">Encajado propio vs servicios (barras) y flujo móvil (línea)</div>
+      <div class="ph">Las barras son el encajado real del día; la línea suaviza el ruido de fin de semana.</div>
+      <div class="cwrap" style="height:320px"><canvas id="c2"></canvas></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <div class="pt">3 · Cumplimiento por mes</div>
+        <div class="ph">Promedio de flujo móvil del mes contra el flujo mínimo.</div>
+        <div class="cwrap" style="height:270px"><canvas id="c3"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="pt">4 · Acumulado: encajado vs despachado</div>
+        <div class="ph">La distancia entre las curvas es el stock parado en acabados.</div>
+        <div class="cwrap" style="height:270px"><canvas id="c4"></canvas></div>
+      </div>
+    </div>
+
+    <div class="sectitle">5 · Resumen mensual</div>
+    <div class="panel">
+      <div class="tblwrap"><table id="tMes"></table></div>
+    </div>
+
+    <div class="sectitle">6 · Detalle diario</div>
+    <div class="panel">
+      <div class="tblwrap"><table id="tDia"></table></div>
+    </div>
+
+    <div class="note" id="fuente"></div>
+  </div>
+</div>
+
+<script>
+Chart.defaults.font.family="Calibri, Arial, sans-serif";
+Chart.defaults.font.size=12;
+Chart.defaults.color="#5F726C";
+Chart.defaults.borderColor="#F1F6F4";
+Chart.defaults.plugins.tooltip.backgroundColor="rgba(51,51,51,0.95)";
+Chart.defaults.plugins.tooltip.padding=10;
+const C={sage:'#0F7A5A',emer:'#10B981',rose:'#DC2626',tan:'#F59E0B',slate:'#4E6B78',taupe:'#B45309'};
+const fmt=n=>Math.round(n).toLocaleString('es-PE');
+const charts={};
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+let SRC=null, D=[], META=0, LASTV=[];
+const TEMPLATE=document.documentElement.outerHTML;
+
+const drop=document.getElementById('drop'), finput=document.getElementById('finput');
+drop.addEventListener('click',()=>finput.click());
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');read(e.dataTransfer.files[0]);});
+finput.addEventListener('change',e=>read(e.target.files[0]));
+document.getElementById('reload').onclick=()=>location.reload();
+document.getElementById('recalc').onclick=()=>build();
+document.getElementById('bAll').onclick=()=>{document.getElementById('pD1').value='';document.getElementById('pD2').value='';build();};
+document.getElementById('print').onclick=()=>{document.body.classList.add('print-dash');window.print();setTimeout(()=>document.body.classList.remove('print-dash'),600);};
+function showErr(m){const e=document.getElementById('err');e.style.display='block';e.innerHTML=m;}
+
+const norm=s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'');
+function grid(ws){const ref=XLSX.utils.decode_range(ws['!ref']);ref.s.r=0;ref.s.c=0;
+  return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null,range:ref});}
+function cols(row){const m={};(row||[]).forEach((v,i)=>{const k=norm(v);if(k&&m[k]===undefined)m[k]=i;});return m;}
+function toDate(v){
+  if(v instanceof Date) return v;
+  if(typeof v==='number') return new Date(Math.round((v-25569)*86400000));
+  if(typeof v==='string'){const m=v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if(m){let y=+m[3]; if(y<100) y+=2000; return new Date(Date.UTC(y,+m[2]-1,+m[1]));}}
+  return null;
+}
+function read(f){
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:true});
+      let ws=wb.Sheets['Produccion Diaria']||wb.Sheets[wb.SheetNames[0]];
+      const M=grid(ws);
+      let hi=-1;
+      for(let i=0;i<20;i++){const c=cols(M[i]||[]);if(c.FECHA!==undefined&&c.FACTOR!==undefined){hi=i;break;}}
+      if(hi<0) return showErr('No encontré la fila de encabezados (busco <b>FECHA</b> y <b>FACTOR</b>) en la hoja de producción diaria.');
+      const c=cols(M[hi]);
+      const kProp=c.PDASENCAJPROPIAS, kServ=c.PDASENCAJSERVICIOS, kDesp=c.PRENDASDESPACHADAS, kMin=c.FLUJOMINIMO;
+      if(kProp===undefined||kServ===undefined) return showErr('Faltan las columnas de encajado (Pdas Encaj. Propias / Servicios).');
+      D=[];
+      M.slice(hi+1).forEach(r=>{
+        const d=toDate(r[c.FECHA]); if(!d) return;
+        const prop=Number(r[kProp])||0, serv=Number(r[kServ])||0;
+        D.push({f:d,dia:String(r[c.DIA]||''),factor:Number(r[c.FACTOR])||1,prop:prop,serv:serv,tot:prop+serv,
+                desp:Number(r[kDesp])||0,metaXls:Number(r[kMin])||0});
+      });
+      if(!D.length) return showErr('No leí ninguna fila con fecha válida.');
+      D.sort((a,b)=>a.f-b.f);
+      META=D.map(x=>x.metaXls).filter(Boolean).pop()||0;
+      SRC={name:f.name};
+      document.getElementById('pMeta').value=META;
+      document.getElementById('fn').textContent=f.name;
+      document.getElementById('drop').style.display='none';
+      document.getElementById('dash').style.display='block';
+      document.getElementById('bar').style.display='flex';
+      build();
+    }catch(err){showErr('No se pudo leer el archivo: '+err.message);}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+const iso=d=>d.toISOString().slice(0,10);
+
+function build(){
+  const meta=Number(document.getElementById('pMeta').value)||0;
+  const vent=Math.max(Number(document.getElementById('pVent').value)||6,1);
+  document.getElementById('ventTxt').textContent=vent;
+  const d1=document.getElementById('pD1').value, d2=document.getElementById('pD2').value;
+
+  // flujo móvil sobre TODA la serie (la ventana necesita historia previa), luego se filtra la vista
+  D.forEach((r,i)=>{
+    if(i<vent-1){r.fm=null;return;}
+    let sT=0,sF=0;
+    for(let k=i-vent+1;k<=i;k++){sT+=D[k].tot;sF+=D[k].factor;}
+    r.fm=sF>0?sT/sF:null;
+  });
+  const V=D.filter(r=>(!d1||iso(r.f)>=d1)&&(!d2||iso(r.f)<=d2));
+  LASTV=V;
+  if(!V.length){showErr('El rango de fechas no tiene datos.');return;}
+
+  const conFM=V.filter(r=>r.fm!=null);
+  const fmAct=conFM.length?conFM[conFM.length-1].fm:0;
+  const gap=fmAct-meta;
+  const dOk=conFM.filter(r=>r.fm>=meta).length;
+  const enc=V.reduce((s,r)=>s+r.tot,0), desp=V.reduce((s,r)=>s+r.desp,0);
+  const prop=V.reduce((s,r)=>s+r.prop,0), serv=V.reduce((s,r)=>s+r.serv,0);
+
+  document.getElementById('kFM').textContent=fmt(fmAct);
+  document.getElementById('kFMs').textContent='al '+V[V.length-1].f.toLocaleDateString('es-PE')+' · ventana '+vent+' días';
+  document.getElementById('kMeta').textContent=fmt(meta);
+  document.getElementById('kGap').textContent=(gap>=0?'+':'')+fmt(gap);
+  document.getElementById('kGap').style.color=gap>=0?'var(--sage)':'var(--rose)';
+  document.getElementById('kGaps').textContent=meta?((gap/meta*100).toFixed(1)+'% vs meta'):'—';
+  document.getElementById('kCump').textContent=conFM.length?Math.round(dOk/conFM.length*100)+'%':'—';
+  document.getElementById('kCumps').textContent=dOk+' de '+conFM.length+' días';
+  document.getElementById('kEnc').textContent=fmt(enc);
+  document.getElementById('kEncs').textContent=fmt(prop)+' propias · '+fmt(serv)+' servicios ('+(enc?Math.round(serv/enc*100):0)+'%)';
+  document.getElementById('kBack').textContent=fmt(enc-desp);
+
+  // control de datos
+  const negs=V.filter(r=>r.serv<0||r.prop<0);
+  const cero=V.filter(r=>r.tot===0);
+  const q=document.getElementById('qa');
+  q.className='note'+(negs.length?' bad':'');
+  q.innerHTML='<b>Control de datos:</b> '+V.length+' días · <b style="color:'+(negs.length?'#DC2626':'#5F726C')+'">'+negs.length+'</b> día(s) con encajado <b>negativo</b> (ajustes o correcciones metidas en la misma columna: '+
+    (negs.length?negs.slice(0,6).map(r=>r.f.toLocaleDateString('es-PE')).join(', ')+(negs.length>6?'…':''):'—')+') · '+cero.length+' día(s) sin encajado. '+
+    'Un negativo no es producción: distorsiona el flujo móvil de los '+vent+' días siguientes.';
+
+  document.getElementById('fuente').innerHTML='<b>Fuente:</b> '+SRC.name+' · flujo móvil recalculado con ventana de '+vent+' días ponderada por FACTOR. '+
+    'Flujo mínimo ('+fmt(meta)+' prendas/día) es un parámetro tomado de la columna FLUJO MINIMO del Excel, editable arriba.';
+
+  const lbl=V.map(r=>r.f.toLocaleDateString('es-PE',{day:'2-digit',month:'short'}));
+
+  // 1 · flujo móvil vs meta
+  draw('c1','line',{labels:lbl,datasets:[
+    {label:'Flujo móvil',data:V.map(r=>r.fm),borderColor:C.sage,backgroundColor:'rgba(15,122,90,.10)',borderWidth:2.5,fill:true,tension:.3,pointRadius:0,spanGaps:true},
+    {label:'Flujo mínimo',data:V.map(()=>meta),borderColor:C.rose,borderWidth:2,borderDash:[6,4],pointRadius:0}
+  ]},{scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}},x:{ticks:{maxTicksLimit:14}}},
+      plugins:{tooltip:{callbacks:{afterBody:it=>{const r=V[it[0].dataIndex];return r.fm!=null?['Brecha: '+(r.fm>=meta?'+':'')+fmt(r.fm-meta)]:[];}}}}});
+
+  // 2 · diario
+  draw('c2','bar',{labels:lbl,datasets:[
+    {label:'Encajado propio',data:V.map(r=>r.prop),backgroundColor:C.sage,stack:'a'},
+    {label:'Encajado servicios',data:V.map(r=>r.serv),backgroundColor:C.tan,stack:'a'},
+    {type:'line',label:'Flujo móvil',data:V.map(r=>r.fm),borderColor:C.slate,borderWidth:2,pointRadius:0,tension:.3,spanGaps:true}
+  ]},{scales:{x:{stacked:true,ticks:{maxTicksLimit:14}},y:{stacked:true,ticks:{callback:v=>fmt(v)}}}});
+
+  // 3 · por mes
+  const byM={};
+  V.forEach(r=>{const k=r.f.getUTCFullYear()+'-'+String(r.f.getUTCMonth()).padStart(2,'0');
+    byM[k]=byM[k]||{n:0,fmS:0,fmN:0,ok:0,enc:0,desp:0,prop:0,serv:0,f:0};
+    const m=byM[k];m.n++;m.enc+=r.tot;m.desp+=r.desp;m.prop+=r.prop;m.serv+=r.serv;m.f+=r.factor;
+    if(r.fm!=null){m.fmS+=r.fm;m.fmN++;if(r.fm>=meta)m.ok++;}});
+  const ms=Object.keys(byM).sort();
+  const mLbl=ms.map(k=>MES[+k.split('-')[1]]);
+  draw('c3','bar',{labels:mLbl,datasets:[
+    {label:'Flujo móvil promedio',data:ms.map(k=>byM[k].fmN?byM[k].fmS/byM[k].fmN:0),backgroundColor:ms.map(k=>(byM[k].fmN&&byM[k].fmS/byM[k].fmN>=meta)?C.sage:C.rose),borderRadius:3},
+    {type:'line',label:'Flujo mínimo',data:ms.map(()=>meta),borderColor:C.rose,borderWidth:2,borderDash:[6,4],pointRadius:0}
+  ]},{scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}}});
+
+  // 4 · acumulados
+  let ae=0,ad=0;
+  draw('c4','line',{labels:lbl,datasets:[
+    {label:'Encajado acumulado',data:V.map(r=>ae+=r.tot),borderColor:C.sage,borderWidth:2.5,pointRadius:0,tension:.2,fill:false},
+    {label:'Despachado acumulado',data:V.map(r=>ad+=r.desp),borderColor:C.slate,borderWidth:2.5,pointRadius:0,tension:.2,fill:false}
+  ]},{scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}},x:{ticks:{maxTicksLimit:12}}}});
+
+  // 5 · tabla mensual
+  let t='<thead><tr><th>Mes</th><th>Días</th><th>Encajado</th><th>Propias</th><th>Servicios</th><th>% servicios</th><th>Flujo móvil prom.</th><th>Brecha</th><th>Días sobre meta</th><th>Despachado</th></tr></thead><tbody>';
+  ms.forEach(k=>{const m=byM[k], f=m.fmN?m.fmS/m.fmN:0, g=f-meta;
+    t+='<tr><td><b>'+MES[+k.split('-')[1]]+'</b></td><td>'+m.n+'</td><td>'+fmt(m.enc)+'</td><td>'+fmt(m.prop)+'</td><td>'+fmt(m.serv)+'</td>'+
+      '<td>'+(m.enc?Math.round(m.serv/m.enc*100):0)+'%</td><td>'+fmt(f)+'</td>'+
+      '<td class="'+(g>=0?'pos':'neg')+'">'+(g>=0?'+':'')+fmt(g)+'</td>'+
+      '<td class="'+(m.fmN&&m.ok/m.fmN>=0.5?'pos':'neg')+'">'+m.ok+' / '+m.fmN+'</td><td>'+fmt(m.desp)+'</td></tr>';});
+  const fTot=conFM.length?conFM.reduce((s,r)=>s+r.fm,0)/conFM.length:0;
+  t+='<tr style="background:var(--warm-light);font-weight:700"><td>TOTAL</td><td>'+V.length+'</td><td>'+fmt(enc)+'</td><td>'+fmt(prop)+'</td><td>'+fmt(serv)+'</td>'+
+     '<td>'+(enc?Math.round(serv/enc*100):0)+'%</td><td>'+fmt(fTot)+'</td><td class="'+(fTot>=meta?'pos':'neg')+'">'+(fTot-meta>=0?'+':'')+fmt(fTot-meta)+'</td>'+
+     '<td>'+dOk+' / '+conFM.length+'</td><td>'+fmt(desp)+'</td></tr>';
+  document.getElementById('tMes').innerHTML=t+'</tbody>';
+
+  // 6 · detalle diario
+  let d='<thead><tr><th>Fecha</th><th>Día</th><th>Factor</th><th>Propias</th><th>Servicios</th><th>Total encajado</th><th>Flujo móvil</th><th>Brecha</th><th>Despachadas</th></tr></thead><tbody>';
+  V.slice().reverse().forEach(r=>{const g=r.fm!=null?r.fm-meta:null;
+    d+='<tr><td>'+r.f.toLocaleDateString('es-PE')+'</td><td>'+r.dia+'</td><td>'+r.factor+'</td>'+
+      '<td class="'+(r.prop<0?'neg':'')+'">'+fmt(r.prop)+'</td><td class="'+(r.serv<0?'neg':'')+'">'+fmt(r.serv)+'</td><td>'+fmt(r.tot)+'</td>'+
+      '<td>'+(r.fm!=null?fmt(r.fm):'—')+'</td><td class="'+(g==null?'':(g>=0?'pos':'neg'))+'">'+(g==null?'—':(g>=0?'+':'')+fmt(g))+'</td><td>'+fmt(r.desp)+'</td></tr>';});
+  document.getElementById('tDia').innerHTML=d+'</tbody>';
+}
+
+function draw(id,type,data,opts){
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type:type,data:data,
+    options:Object.assign({responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false}},opts||{})});
+}
+
+document.getElementById('csv').onclick=()=>{
+  const h=['FECHA','DIA','FACTOR','PROPIAS','SERVICIOS','TOTAL ENCAJADO','FLUJO MOVIL','FLUJO MINIMO','BRECHA','DESPACHADAS'];
+  const meta=Number(document.getElementById('pMeta').value)||0;
+  const l=[h.join(';')];
+  LASTV.forEach(r=>l.push([r.f.toLocaleDateString('es-PE'),r.dia,r.factor,r.prop,r.serv,r.tot,
+    r.fm!=null?Math.round(r.fm):'',meta,r.fm!=null?Math.round(r.fm-meta):'',r.desp].join(';')));
+  const b=new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='flujo_movil_acabados.csv';a.click();
+};
+
+document.getElementById('share').onclick=()=>{
+  const payload={rows:D.map(r=>Object.assign({},r,{f:r.f.toISOString()})),src:SRC.name,fecha:new Date().toLocaleString('es-PE'),
+    params:{meta:document.getElementById('pMeta').value,vent:document.getElementById('pVent').value,
+            d1:document.getElementById('pD1').value,d2:document.getElementById('pD2').value}};
+  const inj='<scr'+'ipt>window.__LIVES__='+JSON.stringify(payload).replace(/</g,'\\u003c')+';</scr'+'ipt>';
+  const out=TEMPLATE.replace('</body>',inj+'\n</body>');
+  const b=new Blob(['<!DOCTYPE html>\n'+out],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='flujo_movil_acabados_'+new Date().toISOString().slice(0,10)+'.html';a.click();
+};
+
+(function(){
+  const P=window.__LIVES__;
+  if(!P) return;
+  D=P.rows.map(r=>Object.assign({},r,{f:new Date(r.f)}));
+  SRC={name:P.src};
+  document.getElementById('pMeta').value=P.params.meta;
+  document.getElementById('pVent').value=P.params.vent;
+  document.getElementById('pD1').value=P.params.d1;
+  document.getElementById('pD2').value=P.params.d2;
+  document.getElementById('drop').style.display='none';
+  document.getElementById('dash').style.display='block';
+  document.getElementById('bar').style.display='flex';
+  document.getElementById('fn').textContent=P.src;
+  document.getElementById('reload').style.display='none';
+  document.getElementById('share').style.display='none';
+  const b=document.createElement('span');b.className='pill';
+  b.textContent='VISTA OBSERVADOR · datos congelados al '+P.fecha;
+  document.getElementById('bar').appendChild(b);
+  build();
+})();
+</script>
+</body>
+</html>
