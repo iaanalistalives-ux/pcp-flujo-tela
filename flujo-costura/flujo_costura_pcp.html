@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LIVES · Flujo Mínimo de Costura — PCP</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --petrol:#0E3B36;--emer:#10B981;--sage:#0F7A5A;--sage-dark:#0B815E;--slate:#4E6B78;
+  --taupe:#B45309;--rose:#DC2626;--tan:#F59E0B;--warm:#DCE5E2;--warm-light:#F1F6F4;--stone:#5F726C;
+}
+body{margin:0;background:#F1F6F4;color:#333;font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4;}
+.header{background:var(--petrol);border-bottom:3px solid var(--emer);min-height:72px;display:flex;align-items:center;padding:0 24px;gap:18px;flex-wrap:wrap;}
+.header svg{height:30px;display:block;}
+.divider{width:1px;height:34px;background:rgba(255,255,255,.35);}
+.htitle{color:#fff;font-size:17px;font-weight:700;letter-spacing:.3px;}
+.hsub{color:#F1F6F4;font-size:12px;}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 24px 60px;}
+.drop{border:2px dashed var(--warm);border-radius:10px;background:#fff;padding:34px 24px;text-align:center;cursor:pointer;transition:.15s;}
+.drop:hover,.drop.over{border-color:var(--sage);background:var(--warm-light);}
+.drop .big{font-size:16px;font-weight:700;color:#333;margin-bottom:4px;}
+.drop .sm{font-size:12.5px;color:var(--stone);}
+.drop .btn{display:inline-block;margin-top:12px;background:var(--sage);color:#fff;font-weight:700;font-family:inherit;font-size:13px;border:none;border-radius:6px;padding:9px 18px;cursor:pointer;}
+.filestat{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.fchip{border:1px solid var(--warm);border-radius:6px;padding:8px 14px;font-size:12px;color:var(--stone);background:#fff;min-width:220px;}
+.fchip b{display:block;color:#333;font-size:12.5px;}
+.fchip.ok{border-color:var(--sage);}
+.fchip.ok b{color:var(--sage);}
+.bar{display:none;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--warm-light);}
+.bar .fname{font-size:12.5px;color:var(--stone);}.bar .fname b{color:#333;}
+.bar .btn{margin-top:0;background:#fff;border:1px solid var(--warm);color:var(--sage);font-size:12.5px;padding:7px 14px;border-radius:6px;font-family:inherit;font-weight:700;cursor:pointer;}
+.err{display:none;background:#FBE9E9;border:1px solid var(--rose);border-radius:8px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:16px;}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.kpi{background:#fff;border:1px solid var(--warm);border-radius:8px;padding:16px 18px;flex:1;min-width:150px;}
+.kpi .v{font-size:28px;font-weight:700;color:var(--sage);line-height:1.1;}
+.kpi .l{font-size:12.5px;color:#333;margin-top:4px;font-weight:600;}
+.kpi .s{font-size:11px;color:var(--stone);margin-top:2px;}
+.kpi.primary{border:2px solid var(--sage);}.kpi.primary .v{font-size:34px;}
+.kpi.meta .v{color:var(--tan);}
+.kpi.alert .v{color:var(--rose);}
+.panel{background:#fff;border:1px solid var(--warm);border-radius:8px;padding:16px 18px;margin-bottom:18px;}
+.panel .pt{font-size:15px;font-weight:700;color:#333;}
+.panel .ph{font-size:11.5px;color:var(--stone);margin-top:2px;margin-bottom:10px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:760px){.grid2{grid-template-columns:1fr;}}
+.cwrap{position:relative;width:100%;}
+.sectitle{font-size:17px;font-weight:700;color:var(--sage-dark);margin:26px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--warm-light);}
+.note{background:#fff;border:1px solid var(--warm);border-left:4px solid var(--tan);border-radius:6px;padding:10px 14px;font-size:11.5px;color:var(--stone);margin-bottom:18px;line-height:1.5;}
+.note.bad{border-left-color:var(--rose);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th,td{padding:6px 8px;border-bottom:1px solid var(--warm-light);text-align:right;}
+th:first-child,td:first-child{text-align:left;}
+thead th{background:var(--warm-light);color:var(--stone);font-weight:700;position:sticky;top:0;z-index:2;}
+#tCli td:first-child,#tCli th:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--warm);}
+#tCli td:last-child,#tCli th:last-child{position:sticky;right:0;background:#fff;z-index:1;box-shadow:-1px 0 0 var(--warm);font-weight:700;}
+#tCli thead th:first-child,#tCli thead th:last-child{background:var(--warm-light);z-index:3;}
+#tCli tbody tr:hover td:first-child,#tCli tbody tr:hover td:last-child{background:#FAFCFB;}
+#tCli tbody tr.tot td:first-child,#tCli tbody tr.tot td:last-child{background:var(--warm-light);}
+tbody tr:hover{background:#FAFCFB;}
+td.neg{color:var(--rose);font-weight:700;}
+.tblwrap{max-height:420px;overflow:auto;border:1px solid var(--warm-light);border-radius:6px;}
+.params{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;background:var(--warm-light);border-radius:8px;padding:12px 14px;margin-bottom:18px;}
+.params .p{display:flex;flex-direction:column;gap:4px;}
+.params label{font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px;}
+.params input{font-family:inherit;font-size:14px;font-weight:700;color:var(--sage);border:1.5px solid var(--sage);border-radius:6px;padding:6px 10px;width:120px;background:#fff;}
+.btn2{background:var(--sage);color:#fff;font-weight:700;font-family:inherit;font-size:13px;border:none;border-radius:6px;padding:9px 16px;cursor:pointer;}
+.btn2.ghost{background:#fff;border:1px solid var(--warm);color:var(--sage);}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--warm-light);color:var(--stone);}
+.pill.sm{background:#E7F3EE;color:var(--sage);}
+.pill.mo{background:#FDF1E3;color:var(--taupe);}
+.pill.bm{background:#EDF1F3;color:var(--slate);}
+.pill.bb{background:#FDECEC;color:var(--rose);}
+#dash{display:none;}
+@media print{
+  @page{size:A4 portrait;margin:11mm;}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#fff!important;}
+  .no-print,#drop,#bar,#err{display:none!important;}
+  body.print-dash .panel,body.print-dash .kpi,body.print-dash table,body.print-dash .cwrap{break-inside:avoid;page-break-inside:avoid;}
+  body.print-dash .sectitle{break-after:avoid;page-break-after:avoid;margin-top:6px;}
+  body.print-dash canvas{max-width:100%!important;height:auto!important;}
+  body.print-dash .cwrap{height:auto!important;}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="256 892 1070 285" fill="#FFFFFF">
+  <path d="
+M922.000000,969.000000 
+	C922.003723,955.001160 921.967468,941.502197 922.029236,928.003601 
+	C922.057251,921.870911 922.871948,921.032715 929.002319,921.028259 
+	C974.331726,920.995361 1019.661072,920.995422 1064.990479,921.028259 
+	C1071.122559,921.032654 1071.856201,921.876892 1071.986694,927.998962 
+	C1072.220337,938.949707 1072.175903,938.998169 1060.993408,938.999207 
+	C1027.829590,939.002258 994.665833,938.992371 961.502014,939.009338 
+	C953.449402,939.013428 953.014526,939.451599 953.007629,947.502258 
+	C952.988586,969.666992 952.984802,991.831787 953.012085,1013.996521 
+	C953.021179,1021.404907 953.592896,1021.979370 961.000854,1021.986084 
+	C989.165100,1022.011536 1017.329285,1021.993958 1045.493530,1022.003601 
+	C1054.576538,1022.006714 1057.366943,1025.554443 1054.560913,1034.424194 
+	C1054.052246,1036.032227 1050.937744,1037.752197 1048.978271,1037.810303 
+	C1037.822144,1038.141724 1026.651611,1037.989746 1015.485962,1037.993286 
+	C997.154236,1037.999146 978.822388,1037.972534 960.490784,1038.014038 
+	C953.732666,1038.029297 953.026550,1038.731934 953.018250,1045.510620 
+	C952.985718,1072.174927 952.985596,1098.839355 953.018555,1125.503662 
+	C953.026917,1132.270874 953.734497,1132.980225 960.505066,1132.986450 
+	C994.668762,1133.017944 1028.832886,1132.944458 1062.995605,1133.118286 
+	C1065.835327,1133.132690 1070.872925,1134.319946 1071.106201,1135.633789 
+	C1071.948242,1140.376343 1071.449951,1145.446777 1070.739502,1150.288086 
+	C1070.617676,1151.119019 1066.993042,1151.892456 1064.977539,1151.915405 
+	C1051.980347,1152.063965 1038.980713,1151.999023 1025.981812,1151.999390 
+	C994.151245,1152.000244 962.320618,1152.008179 930.490051,1151.991211 
+	C922.450195,1151.986816 922.011047,1151.548828 922.009277,1143.484619 
+	C921.996216,1085.489746 922.000916,1027.494873 922.000000,969.000000 
+z"/>
+  <path d="
+M1256.371826,929.606079 
+	C1268.946411,937.231934 1277.884644,947.439087 1282.435791,961.161072 
+	C1284.607178,967.707458 1283.630859,968.602661 1276.903442,969.057983 
+	C1267.447388,969.697876 1259.984253,969.504395 1257.139648,957.198364 
+	C1254.540161,945.952820 1244.487061,940.064331 1233.806030,936.471130 
+	C1213.883789,929.769226 1194.237915,929.839355 1175.095947,939.432617 
+	C1163.825073,945.080994 1156.191284,953.316772 1155.006226,966.515808 
+	C1153.711426,980.936768 1160.739868,990.461731 1172.342407,997.777100 
+	C1189.302124,1008.470215 1208.214111,1014.497620 1226.890747,1021.084167 
+	C1242.068481,1026.436890 1256.258545,1033.445190 1269.259644,1043.089600 
+	C1305.998535,1070.343018 1298.081299,1125.317993 1259.652954,1145.170776 
+	C1245.750366,1152.353149 1230.879395,1155.423950 1215.392578,1155.985962 
+	C1199.309326,1156.569580 1183.444336,1155.447388 1168.091797,1150.020752 
+	C1149.534058,1143.461060 1133.989014,1133.213135 1125.519165,1114.696411 
+	C1123.338135,1109.928345 1122.318604,1104.568481 1121.225098,1099.383545 
+	C1120.391113,1095.428711 1122.106689,1092.880859 1126.585205,1093.038086 
+	C1126.751465,1093.043945 1126.918579,1093.021484 1127.084961,1093.026733 
+	C1131.902344,1093.178223 1137.725830,1091.744019 1141.231812,1093.966187 
+	C1144.263306,1095.887573 1144.829346,1101.909668 1146.194458,1106.211304 
+	C1150.757690,1120.590942 1160.325562,1130.529175 1174.282959,1135.353149 
+	C1198.470215,1143.712769 1222.660522,1143.713135 1246.167114,1132.377930 
+	C1254.947266,1128.144043 1260.783691,1121.105469 1262.737183,1111.625244 
+	C1266.852661,1091.652100 1262.434692,1077.169067 1244.663452,1064.733765 
+	C1231.644531,1055.623901 1216.843750,1050.589478 1202.282715,1044.842407 
+	C1188.217285,1039.291016 1174.019897,1033.849365 1160.598145,1026.960938 
+	C1149.133667,1021.077148 1138.935913,1012.717529 1134.008423,1000.155212 
+	C1123.727905,973.944702 1130.833496,940.327393 1163.224609,925.874573 
+	C1194.404785,911.962097 1225.692383,913.162109 1256.371826,929.606079 
+z"/>
+  <path d="
+M689.711609,964.261353 
+	C706.209290,1003.806580 722.545410,1043.004028 738.893494,1082.196289 
+	C742.589050,1091.055908 746.326721,1099.897949 750.632629,1110.146606 
+	C752.219177,1107.257080 753.274353,1105.719360 753.959412,1104.031372 
+	C771.245605,1061.439331 788.483765,1018.827698 805.752197,976.228394 
+	C812.258728,960.177490 819.031311,944.229797 825.237915,928.064331 
+	C827.323975,922.630859 830.379395,920.715332 836.056030,920.895020 
+	C846.347656,921.220825 846.284241,920.924133 842.466858,930.332520 
+	C825.372681,972.463135 808.339417,1014.618530 791.256714,1056.753906 
+	C779.242920,1086.386475 767.102966,1115.968628 755.233765,1145.658936 
+	C753.421631,1150.191895 750.980103,1152.172119 746.015259,1152.072754 
+	C729.620483,1151.744751 732.478699,1153.512695 726.528137,1139.312622 
+	C696.857300,1068.507690 667.158264,997.714600 637.462891,926.919922 
+	C635.370056,921.930664 635.840881,921.080811 641.271423,921.031555 
+	C649.600464,920.955994 657.932068,921.107117 666.259949,920.983948 
+	C670.106689,920.927063 672.419617,922.471252 673.876526,926.066284 
+	C679.004639,938.721069 684.313843,951.302490 689.711609,964.261353 
+z"/>
+  <path d="
+M276.004944,1003.000000 
+	C276.006287,978.002014 275.991669,953.503967 276.018494,929.005981 
+	C276.026611,921.599487 276.604797,921.047546 284.006927,921.011902 
+	C289.839417,920.983887 295.672577,921.070984 301.504852,921.028931 
+	C305.258301,921.001892 307.037170,922.775513 306.964142,926.514954 
+	C306.925079,928.513611 306.995880,930.514099 306.995941,932.513794 
+	C306.998474,996.175293 306.995514,1059.836792 307.001709,1123.498291 
+	C307.002594,1132.883789 307.119720,1132.999146 316.499573,1133.001587 
+	C350.163483,1133.010620 383.827423,1132.997559 417.491333,1133.014893 
+	C425.546356,1133.019043 425.956146,1133.466675 425.996490,1141.504761 
+	C426.001526,1142.504639 426.005341,1143.504639 425.991669,1144.504395 
+	C425.899017,1151.267822 425.267242,1151.977173 418.490265,1151.980957 
+	C373.493958,1152.005981 328.497620,1152.006104 283.501312,1151.980713 
+	C276.739044,1151.976807 276.028229,1151.264160 276.024353,1144.488403 
+	C275.997498,1097.492310 276.007050,1050.496094 276.004944,1003.000000 
+z"/>
+  <path d="
+M546.000000,979.000000 
+	C545.999634,1033.996460 546.003662,1088.492798 545.994385,1142.989258 
+	C545.992920,1151.704834 545.706116,1151.977539 537.006348,1151.994263 
+	C531.506958,1152.004761 526.007080,1151.928589 520.508057,1151.971191 
+	C516.761414,1152.000244 514.955139,1150.242065 515.040100,1146.495850 
+	C515.070312,1145.163818 515.006042,1143.829834 515.005981,1142.496826 
+	C515.003967,1071.834839 515.001526,1001.172791 515.007141,930.510742 
+	C515.007874,921.118774 515.122803,921.017517 524.499512,921.002991 
+	C529.499146,920.995239 534.504211,921.157715 539.496887,920.974487 
+	C544.198853,920.801941 546.068481,922.808105 546.034180,927.503723 
+	C545.909973,944.501709 545.994324,961.501099 546.000000,979.000000 
+z"/>
+</svg>
+  <div class="divider"></div>
+  <div>
+    <div class="htitle">Flujo Mínimo de Costura</div>
+    <div class="hsub">PCP / Planeamiento · Fase 0 — réplica automática del reporte semanal</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="err" id="err"></div>
+
+  <div id="drop" class="drop">
+    <div class="big">Arrastra aquí PEDIDOS_SITUACION_ACTUAL.xlsm (o haz clic)</div>
+    <div class="sm">Un solo archivo. Ya trae pegado el Rpt del ERP y todos los cálculos de las macros (hoja <b>DATA</b>, <b>detalle</b>, <b>Hoja2</b>).</div>
+    <button class="btn" type="button">Seleccionar archivo</button>
+    <input type="file" id="finput" accept=".xlsx,.xlsm" style="display:none">
+  </div>
+
+  <div id="dash">
+    <div class="bar" id="bar">
+      <div class="fname">Fuente: <b id="fn1">—</b></div>
+      <button class="btn" id="reload">Cambiar archivo</button>
+      <button class="btn" id="csv">Descargar detalle (CSV)</button>
+      <button class="btn" id="share" style="border-color:var(--sage);background:var(--sage);color:#fff;">Exportar dashboard interactivo</button>
+      <button class="btn" id="print">Imprimir A4</button>
+    </div>
+
+    <div class="params no-print">
+      <div class="p"><label>Capacidad planta (min/sem)</label><input type="number" id="pCap" value="85000"></div>
+      <div class="p"><label>Eficiencia (factor)</label><input type="number" id="pEf" value="0.85" step="0.05"></div>
+      <div class="p"><label>Min/sem por taller</label><input type="number" id="pTal" placeholder="sin dato"></div>
+      <button class="btn2" id="recalc">Recalcular</button>
+      <span style="font-size:11px;color:var(--stone);max-width:300px;">Capacidad y eficiencia son parámetros, no datos del ERP. Si "min/sem por taller" queda vacío, no se estima número de talleres.</span>
+    </div>
+
+    <div class="params no-print">
+      <div class="p"><label>Base de la semana</label>
+        <select id="pBase" style="font-family:inherit;font-size:13.5px;font-weight:700;color:var(--sage);border:1.5px solid var(--sage);border-radius:6px;padding:6px 10px;background:#fff;">
+          <option value="semX">XFTY — semana de despacho (como el correo)</option>
+          <option value="semHC">Hito de costura (XFTY − 35 días)</option>
+          <option value="semCT">Hito de corte (XFTY − 45 días)</option>
+        </select>
+      </div>
+      <div class="p"><label>Desde semana</label><input type="number" id="pDesde" placeholder="todas" style="width:90px"></div>
+      <div class="p"><label>Hasta semana</label><input type="number" id="pHasta" placeholder="todas" style="width:90px"></div>
+      <button class="btn2 ghost" id="bFut">Solo desde la semana actual</button>
+      <button class="btn2 ghost" id="bAll">Todas las semanas</button>
+      <span style="font-size:11px;color:var(--stone);max-width:280px;">El correo de PCP filtra semanas: si no cuadran los totales, es por aquí.</span>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi primary"><div class="v" id="kMin">—</div><div class="l">Minutos totales por coser</div><div class="s" id="kMinS">—</div></div>
+      <div class="kpi"><div class="v" id="kPzas">—</div><div class="l">Prendas por coser</div><div class="s">REQ.PROD − confeccionadas</div></div>
+      <div class="kpi meta"><div class="v" id="kPico">—</div><div class="l">Semana pico</div><div class="s" id="kPicoS">—</div></div>
+      <div class="kpi alert"><div class="v" id="kDef">—</div><div class="l">Déficit vs capacidad</div><div class="s" id="kDefS">—</div></div>
+      <div class="kpi"><div class="v" id="kSem">—</div><div class="l">Semanas con carga</div><div class="s" id="kSemS">—</div></div>
+    </div>
+
+    <div class="note" id="filtro"></div>
+    <div class="note bad" id="qa"></div>
+
+    <div class="sectitle">1 · Flujo mínimo de costura (máx. por semana)</div>
+    <div class="panel">
+      <div class="pt">Máx. de FLUJO COSTURA — misma métrica del correo de PCP</div>
+      <div class="ph">FLUJO COSTURA por OP = minutos pendientes ÷ (días hasta el hito de costura × 0.85). El pivot del correo toma el <b>máximo</b> de cada semana: los minutos por día que exige la OP más apretada.</div>
+      <div class="cwrap" style="height:300px"><canvas id="c0"></canvas></div>
+    </div>
+
+    <div class="sectitle">2 · Carga de costura por semana vs capacidad</div>
+    <div class="panel">
+      <div class="pt">Minutos de costura pendientes por semana de despacho (XFTY)</div>
+      <div class="ph">Minutos = MIN. COSTURA del estilo × (REQ.PROD − CONFECCIONADAS). Semana = WEEKNUM(XFTY). La línea roja es la capacidad de planta parametrizada.</div>
+      <div class="cwrap" style="height:320px"><canvas id="c1"></canvas></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <div class="pt">3 · Mix por categoría de prenda</div>
+        <div class="ph">Participación de minutos: SM (semi moda), MO (moda), BM (box moda), BB.</div>
+        <div class="cwrap" style="height:280px"><canvas id="c2"></canvas></div>
+        <div id="bloques" style="font-size:12px;color:var(--stone);margin-top:8px;border-top:1px solid var(--warm-light);padding-top:8px;"></div>
+      </div>
+      <div class="panel">
+        <div class="pt">4 · Carga por categoría y semana</div>
+        <div class="ph">Barras apiladas — mismo corte que el pivot del correo.</div>
+        <div class="cwrap" style="height:280px"><canvas id="c3"></canvas></div>
+      </div>
+    </div>
+
+    <div class="sectitle">5 · Semana a semana (tabla de control)</div>
+    <div class="panel">
+      <div class="pt">Carga, capacidad y déficit</div>
+      <div class="ph">Déficit = minutos de la semana − capacidad efectiva (capacidad × eficiencia). En rojo, semanas que no entran en planta.</div>
+      <div class="tblwrap"><table id="tSem"></table></div>
+    </div>
+
+    <div class="sectitle">6 · Ranking de estilos por categoría</div>
+    <div class="grid2">
+      <div class="panel"><div class="pt" id="tR1">—</div><div class="ph">Top 10 por minutos de costura pendientes.</div><div class="cwrap" style="height:260px"><canvas id="cR1"></canvas></div></div>
+      <div class="panel"><div class="pt" id="tR2">—</div><div class="ph">Top 10 por minutos de costura pendientes.</div><div class="cwrap" style="height:260px"><canvas id="cR2"></canvas></div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><div class="pt" id="tR3">—</div><div class="ph">Top 10 por minutos de costura pendientes.</div><div class="cwrap" style="height:240px"><canvas id="cR3"></canvas></div></div>
+      <div class="panel"><div class="pt" id="tR4">—</div><div class="ph">Top 10 por minutos de costura pendientes.</div><div class="cwrap" style="height:240px"><canvas id="cR4"></canvas></div></div>
+    </div>
+
+    <div class="sectitle">7 · Carga por cliente y semana</div>
+    <div class="panel">
+      <div class="pt">Minutos por cliente / grupo (matriz del correo)</div>
+      <div class="ph">Suma de minutos de costura pendientes.</div>
+      <div class="tblwrap"><table id="tCli"></table></div>
+    </div>
+
+    <div class="sectitle">8 · Contraste con el reporte de PCP</div>
+    <div class="panel">
+      <div class="pt">Pega aquí el pivot del correo y el tablero calcula la diferencia</div>
+      <div class="ph">Copia del Excel/correo las dos columnas (semana y minutos) y pégalas abajo. Acepta tabulaciones, comas o punto y coma. Se compara contra la vista actual (misma base de semana y mismo filtro).</div>
+      <textarea id="pegar" placeholder="36&#9;38065&#10;37&#9;46751&#10;38&#9;53640…" style="width:100%;height:90px;font-family:Consolas,monospace;font-size:12px;border:1px solid var(--warm);border-radius:6px;padding:8px;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn2" id="bCmp">Comparar</button>
+        <button class="btn2 ghost" id="bCmpClr">Limpiar</button>
+        <span style="font-size:11px;color:var(--stone);">Solo tiene sentido comparar contra un pivot hecho con <b>el mismo corte de datos</b>. Contra un correo de otra fecha, las diferencias no significan nada.</span>
+      </div>
+      <div class="note" id="cmpRes" style="display:none;margin-top:12px;"></div>
+      <div id="cmpOut" style="display:none;margin-top:14px;">
+        <div class="cwrap" style="height:280px"><canvas id="cCmp"></canvas></div>
+        <div class="tblwrap" style="margin-top:12px;"><table id="tCmp"></table></div>
+      </div>
+    </div>
+
+    <div class="note" id="fuente"></div>
+  </div>
+</div>
+
+<script>
+Chart.defaults.font.family="Calibri, Arial, sans-serif";
+Chart.defaults.font.size=12;
+Chart.defaults.color="#5F726C";
+Chart.defaults.borderColor="#F1F6F4";
+Chart.defaults.plugins.tooltip.backgroundColor="rgba(51,51,51,0.95)";
+Chart.defaults.plugins.tooltip.padding=10;
+Chart.defaults.plugins.tooltip.cornerRadius=4;
+const C={sage:'#0F7A5A',emer:'#10B981',rose:'#DC2626',tan:'#F59E0B',slate:'#4E6B78',taupe:'#B45309',warm:'#DCE5E2'};
+const ROT=[C.taupe,C.slate,C.emer,C.rose,C.tan];
+const CATC={SM:C.sage,MO:C.taupe,BM:C.slate,BB:C.tan,BA:C.emer,E2:'#8B5CF6',E4:'#8B5CF6',E5:'#7C3AED',E6:'#6D28D9'};
+const CATN={SM:'Semi moda',MO:'Moda',BM:'Box moda',BB:'Box básico',BA:'Básico',E2:'Especial 2',E4:'Especial 4',E5:'Especial 5',E6:'Especial 6'};
+const CATNAME=c=>CATN[c]||'sin clasificar';
+const fmt=n=>Math.round(n).toLocaleString('es-PE');
+const charts={};
+
+let SRCWB=null, ROWS=[], QA={}, LAST={bySem:{},sems:[]};
+const TEMPLATE=document.documentElement.outerHTML;   // copia limpia para exportar
+
+/* ---------- Carga de archivos ---------- */
+const drop=document.getElementById('drop'), finput=document.getElementById('finput');
+drop.addEventListener('click',()=>finput.click());
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');handle(e.dataTransfer.files);});
+finput.addEventListener('change',e=>handle(e.target.files));
+document.getElementById('reload').onclick=()=>{location.reload();};
+document.getElementById('print').onclick=()=>{document.body.classList.add('print-dash');window.print();setTimeout(()=>document.body.classList.remove('print-dash'),600);};
+document.getElementById('recalc').onclick=()=>build();
+document.getElementById('pBase').onchange=()=>build();
+document.getElementById('bAll').onclick=()=>{document.getElementById('pDesde').value='';document.getElementById('pHasta').value='';build();};
+document.getElementById('bFut').onclick=()=>{document.getElementById('pDesde').value=weeknum(new Date());document.getElementById('pHasta').value='';build();};
+
+function showErr(m){const e=document.getElementById('err');e.style.display='block';e.innerHTML=m;}
+
+function handle(files){
+  document.getElementById('err').style.display='none';
+  const f=files[0];
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:true});
+      const sh=wb.SheetNames;
+      if(!(sh.includes('DATA')&&sh.includes('detalle')&&sh.includes('Hoja2'))){
+        return showErr('El archivo <b>'+f.name+'</b> no tiene las hojas <b>DATA</b>, <b>detalle</b> y <b>Hoja2</b>. Sube <b>PEDIDOS_SITUACION_ACTUAL.xlsm</b>, no el Rpt del ERP.');
+      }
+      SRCWB={wb:wb,name:f.name};
+      document.getElementById('fn1').textContent=f.name;
+      start();
+    }catch(err){showErr('No se pudo leer <b>'+f.name+'</b>: '+err.message);}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+/* ---------- Motor (réplica de las fórmulas de DATA) ---------- */
+function toDate(v){
+  if(v instanceof Date) return v;
+  if(typeof v==='number') return new Date(Math.round((v-25569)*86400000));
+  return null;
+}
+function weeknum(d){ // WEEKNUM de Excel (tipo 1: semana inicia domingo)
+  const j=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const off=j.getUTCDay();
+  const diff=Math.floor((Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())-j.getTime())/86400000);
+  return Math.floor((diff+off)/7)+1;
+}
+function start(){
+  try{
+    const R=grid(SRCWB.wb.Sheets['DATA']);
+    const D=grid(SRCWB.wb.Sheets['detalle']);
+    const H=grid(SRCWB.wb.Sheets['Hoja2']);
+
+    const rH=findHdr(R,['CLIENTE','OP']), dH=findHdr(D,['ESTILO','MINCOSTURA']), hH=findHdr(H,['OP','XFTY']);
+    if(rH<0) return showErr('No encontré la fila de encabezados en la hoja <b>DATA</b> (busco CLIENTE y O/P).');
+    if(dH<0) return showErr('No encontré la fila de encabezados en la hoja <b>detalle</b> (busco ESTILO y MIN. COSTURA).');
+    if(hH<0) return showErr('No encontré la fila de encabezados en la hoja <b>Hoja2</b> (busco OP y XFTY).');
+
+    const rc=cols(R[rH]), dc=cols(D[dH]), hc=cols(H[hH]);
+    const need=['CLIENTE','OP','COMB','REQPROD','CONFECCIONADAS'];
+    const miss=need.filter(k=>rc[k]===undefined);
+    if(miss.length) return showErr('A la hoja <b>DATA</b> le faltan columnas: <b>'+miss.join(', ')+'</b>');
+
+    const EST={};
+    D.slice(dH+1).forEach(r=>{ const e=r[dc.ESTILO]; if(e===undefined||e===null||e==='')return;
+      EST[String(e).trim()]={cat:String(r[dc.CATEGPRENDA]||''),mincost:Number(r[dc.MINCOSTURA])||0,grupoprod:r[dc.GRUPOPROD]}; });
+    const XF={};
+    H.slice(hH+1).forEach(r=>{ const o=r[hc.OP]; if(o===undefined||o===null||o==='')return; XF[String(o).trim()]=r[hc.XFTY]; });
+    if(!Object.keys(EST).length) return showErr('La hoja <b>detalle</b> no devolvió ningún estilo.');
+    if(!Object.keys(XF).length)  return showErr('La hoja <b>Hoja2</b> no devolvió ninguna OP/XFTY.');
+
+    ROWS=[]; const sinXF=[], sinEst=[];
+    R.slice(rH+1).forEach(r=>{
+      if(!r[rc.CLIENTE]) return;
+      const opf=String(r[rc.OP]||'');
+      const op=opf.slice(0,5).trim();
+      const estilo=opf.length>=7?opf.slice(-7).slice(1,6):'';
+      const e=EST[estilo];
+      const xf=toDate(XF[op]);
+      const reqprod=Number(r[rc.REQPROD])||0, conf=Number(r[rc.CONFECCIONADAS])||0, req=Number(r[rc.REQUERIDAS])||0;
+      const mincost=e?e.mincost:0;
+      const pzas=Math.max(reqprod-conf,0);
+      const min=mincost*pzas>0?mincost*pzas:0;
+      const cli=String(r[rc.CLIENTE]||'').trim();
+      const HOY=new Date();
+      let semX=null,semHC=null,semCT=null,venc=false;
+      if(xf){
+        semX=weeknum(xf);
+        const hc=new Date(xf.getTime()-35*86400000), ct=new Date(xf.getTime()-45*86400000);
+        venc = hc<=HOY;                                   // hito de costura ya vencido
+        semHC = weeknum(hc<=HOY ? new Date(HOY.getTime()+86400000) : hc);   // mismo piso que el .xlsm
+        semCT = weeknum(ct<=HOY ? new Date(HOY.getTime()+86400000) : ct);
+      }
+      let dias=null, flujo=0;
+      if(xf){
+        const hcDate = venc ? new Date(HOY.getTime()+86400000) : new Date(xf.getTime()-35*86400000);
+        dias = Math.max(Math.round((hcDate-HOY)/86400000),1);      // DIAS COSTURA = HITO COSTURA - HOY
+        flujo = min>0 ? min/(dias*0.85) : 0;                        // FLUJO COSTURA (min/día)
+      }
+      const row={cliente:cli,grupo:cli.slice(0,8).trim(),op:op,estilo:estilo,comb:String(r[rc.COMB]||'').trim(),
+        req:req,reqprod:reqprod,conf:conf,pzas:pzas,mincost:mincost,min:min,dias:dias,flujo:flujo,
+        xfty:xf,semX:semX,semHC:semHC,semCT:semCT,venc:venc,sem:semX,
+        cat:e?String(e.cat).slice(0,2):'',cli3:cli.slice(0,3)};
+      if(!e) sinEst.push(row);
+      if(!xf) sinXF.push(row);
+      ROWS.push(row);
+    });
+    QA={total:ROWS.length,sinXF:sinXF,sinEst:sinEst};
+    document.getElementById('drop').style.display='none';
+    document.getElementById('dash').style.display='block';
+    document.getElementById('bar').style.display='flex';
+    build();
+  }catch(err){showErr('Error procesando los archivos: '+err.message);}
+}
+
+/* Matriz de la hoja forzada a origen A1 (SheetJS recorta columnas vacías a la izquierda) */
+function grid(ws){
+  if(!ws) return [];
+  const ref=XLSX.utils.decode_range(ws['!ref']);
+  ref.s.r=0; ref.s.c=0;
+  return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null,range:ref});
+}
+const norm=s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'');
+function cols(row){const m={};(row||[]).forEach((v,i)=>{const k=norm(v); if(k&&m[k]===undefined)m[k]=i;});return m;}
+function findHdr(M,keys){
+  for(let i=0;i<Math.min(M.length,20);i++){
+    const c=cols(M[i]);
+    if(keys.every(k=>c[k]!==undefined)) return i;
+  }
+  return -1;
+}
+
+function build(){
+  const cap=Number(document.getElementById('pCap').value)||0;
+  const ef=Number(document.getElementById('pEf').value)||1;
+  const talMin=Number(document.getElementById('pTal').value)||0;
+  const capEf=cap*ef;
+  const base=document.getElementById('pBase').value;
+  ROWS.forEach(r=>{r.sem=r[base];});
+  const desde=Number(document.getElementById('pDesde').value)||null;
+  const hasta=Number(document.getElementById('pHasta').value)||null;
+  const ALL=ROWS.filter(r=>r.sem&&r.min>0);
+  const V=ALL.filter(r=>(!desde||r.sem>=desde)&&(!hasta||r.sem<=hasta));   // filas dentro del filtro
+  const totMin=V.reduce((s,r)=>s+r.min,0);
+  const totPz=V.reduce((s,r)=>s+r.pzas,0);
+
+  // por semana
+  const bySem={};
+  V.forEach(r=>{bySem[r.sem]=bySem[r.sem]||{min:0,pz:0,cat:{},flujo:0};bySem[r.sem].min+=r.min;bySem[r.sem].pz+=r.pzas;
+    bySem[r.sem].flujo=Math.max(bySem[r.sem].flujo,r.flujo||0);
+    bySem[r.sem].cat[r.cat]=(bySem[r.sem].cat[r.cat]||0)+r.min;});
+  const sems=Object.keys(bySem).map(Number).sort((a,b)=>a-b);
+  const pico=sems.reduce((m,s)=>bySem[s].min>(bySem[m]?bySem[m].min:0)?s:m,sems[0]);
+  const deficit=sems.reduce((s,w)=>s+Math.max(bySem[w].min-capEf,0),0);
+  const semRojas=sems.filter(w=>bySem[w].min>capEf).length;
+
+  document.getElementById('kMin').textContent=fmt(totMin);
+  document.getElementById('kMinS').textContent='minutos de costura pendientes · '+V.length+' OP/color';
+  document.getElementById('kPzas').textContent=fmt(totPz);
+  document.getElementById('kPico').textContent=pico?('S'+pico):'—';
+  document.getElementById('kPicoS').textContent=pico?fmt(bySem[pico].min)+' min':'—';
+  document.getElementById('kDef').textContent=fmt(deficit);
+  document.getElementById('kDefS').textContent=talMin>0?('≈ '+Math.ceil(deficit/talMin)+' talleres (a '+fmt(talMin)+' min/sem c/u)'):'min sobre capacidad efectiva ('+fmt(capEf)+'/sem)';
+  document.getElementById('kSem').textContent=sems.length;
+  document.getElementById('kSemS').textContent=semRojas+' semana(s) sobre capacidad';
+
+  // aviso de filtro / carga vencida
+  const totAll=ALL.reduce((s,r)=>s+r.min,0);
+  const fuera=totAll-totMin;
+  const venc=ALL.filter(r=>r.venc).reduce((s,r)=>s+r.min,0);
+  const fl=document.getElementById('filtro');
+  const semsAll=[...new Set(ALL.map(r=>r.sem))].sort((a,b)=>a-b);
+  fl.className='note'+(fuera>0?' bad':'');
+  fl.innerHTML='<b>Vista:</b> semana según <b>'+document.getElementById('pBase').selectedOptions[0].text+'</b> · '+
+    'mostrando <b>S'+(desde||semsAll[0])+' – S'+(hasta||semsAll[semsAll.length-1])+'</b> de S'+semsAll[0]+'–S'+semsAll[semsAll.length-1]+
+    (fuera>0?' · <b style="color:#DC2626">'+fmt(fuera)+' min ('+(fuera/totAll*100).toFixed(1)+'%) quedan fuera del filtro</b>':' · sin semanas excluidas')+
+    (base!=='semX'?' · <b style="color:#DC2626">'+fmt(venc)+' min</b> con hito de costura ya vencido (empujados a la semana actual, igual que la fórmula del .xlsm)':'');
+
+  // control de calidad
+  const q=document.getElementById('qa');
+  const nX=QA.sinXF.length, nE=QA.sinEst.length;
+  q.className='note'+((nX+nE)>0?' bad':'');
+  q.innerHTML='<b>Control de datos:</b> '+QA.total+' filas en el Rpt · <b>'+V.length+'</b> entran al cálculo · '+
+    '<b style="color:'+(nX?'#DC2626':'#5F726C')+'">'+nX+'</b> sin fecha XFTY en Hoja2 (se caen del reporte: '+
+    (nX?QA.sinXF.slice(0,8).map(r=>r.op).join(', ')+(nX>8?'…':''):'—')+') · '+
+    '<b style="color:'+(nE?'#DC2626':'#5F726C')+'">'+nE+'</b> sin estilo en la hoja <i>detalle</i> (sin minutos: '+
+    (nE?QA.sinEst.slice(0,8).map(r=>r.estilo).join(', ')+(nE>8?'…':''):'—')+').';
+
+  document.getElementById('fuente').innerHTML='<b>Fuente:</b> '+SRCWB.name+' (hojas DATA, detalle y Hoja2). '+
+    'Minutos = MIN. COSTURA × (REQ.PROD − CONFECCIONADAS), semana = WEEKNUM(XFTY), categoría = 2 primeras letras de CATEG. PRENDA. '+
+    'Capacidad ('+fmt(cap)+' min/sem) y eficiencia ('+ef+') son parámetros ingresados, no datos del ERP.';
+
+  // c0 flujo mínimo de costura (máx por semana) — pivot 1 del correo
+  draw('c0','line',{labels:sems.map(s=>'S'+s),datasets:[
+    {label:'Máx. de FLUJO COSTURA (min/día)',data:sems.map(s=>bySem[s].flujo),borderColor:C.sage,backgroundColor:'rgba(15,122,90,.08)',
+     borderWidth:2.5,fill:true,tension:.25,pointRadius:3,pointBackgroundColor:C.sage}]},
+    {plugins:{legend:{display:true}},scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}}});
+
+  // análisis de bloques (texto del correo, automático)
+  // c1 línea + capacidad
+  draw('c1','bar',{labels:sems.map(s=>'S'+s),datasets:[
+    {label:'Minutos por coser',data:sems.map(s=>bySem[s].min),backgroundColor:C.sage,borderRadius:3,order:2},
+    {type:'line',label:'Capacidad efectiva',data:sems.map(()=>capEf),borderColor:C.rose,borderWidth:2,pointRadius:0,order:1}
+  ]},{scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}}});
+
+  // c2 mix categoría
+  const byCat={};
+  V.forEach(r=>{byCat[r.cat]=(byCat[r.cat]||0)+r.min;});
+  const cats=Object.keys(byCat).sort((a,b)=>byCat[b]-byCat[a]);
+  draw('c2','doughnut',{labels:cats.map(c=>c+' '+CATNAME(c)+' — '+(byCat[c]/totMin*100).toFixed(1)+'%'),datasets:[
+    {data:cats.map(c=>byCat[c]),backgroundColor:cats.map((c,i)=>CATC[c]||ROT[i%5]),borderWidth:0}]},
+    {cutout:'58%',plugins:{legend:{position:'right'}}});
+
+  const b1=cats[0],b2=cats[1];
+  document.getElementById('bloques').innerHTML='<b>Análisis de bloques:</b> el <b style="color:'+(CATC[b1]||C.sage)+'">'+(byCat[b1]/totMin*100).toFixed(0)+'%</b> corresponde a <b>'+CATNAME(b1)+' ('+b1+')</b>'+
+    (b2?', y en segundo lugar <b>'+(byCat[b2]/totMin*100).toFixed(0)+'%</b> a <b>'+CATNAME(b2)+' ('+b2+')</b>':'')+'. Total: '+fmt(totMin)+' min.';
+
+  // c3 apiladas
+  draw('c3','bar',{labels:sems.map(s=>'S'+s),datasets:cats.map((c,i)=>({label:c,data:sems.map(s=>bySem[s].cat[c]||0),backgroundColor:CATC[c]||ROT[i%5]}))},
+    {scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{callback:v=>fmt(v)}}}});
+
+  // tabla semanas
+  let h='<thead><tr><th>Semana</th><th>Prendas por coser</th><th>Minutos</th><th>Capacidad efectiva</th><th>Déficit</th><th>Talleres est.</th></tr></thead><tbody>';
+  sems.forEach(s=>{
+    const d=bySem[s].min-capEf;
+    h+='<tr><td><b>S'+s+'</b></td><td>'+fmt(bySem[s].pz)+'</td><td>'+fmt(bySem[s].min)+'</td><td>'+fmt(capEf)+'</td>'+
+      '<td class="'+(d>0?'neg':'')+'">'+(d>0?fmt(d):'—')+'</td><td>'+((d>0&&talMin>0)?Math.ceil(d/talMin):'—')+'</td></tr>';
+  });
+  h+='<tr style="background:var(--warm-light);font-weight:700"><td>TOTAL</td><td>'+fmt(totPz)+'</td><td>'+fmt(totMin)+'</td><td>—</td><td class="neg">'+fmt(deficit)+'</td><td>'+(talMin>0?Math.ceil(deficit/talMin):'—')+'</td></tr>';
+  document.getElementById('tSem').innerHTML=h+'</tbody>';
+
+  // rankings: las 4 categorías con más minutos (dinámico, incluye Especiales/Básicos)
+  cats.slice(0,4).forEach((cat,i)=>{
+    const m={};
+    V.filter(r=>r.cat===cat).forEach(r=>{const k=r.estilo+' · '+r.cli3;m[k]=(m[k]||0)+r.min;});
+    const top=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    document.getElementById('tR'+(i+1)).innerHTML='Top estilos <b style="color:'+(CATC[cat]||ROT[i%5])+'">'+cat+'</b> — '+CATNAME(cat)+' · '+fmt(byCat[cat])+' min ('+(byCat[cat]/totMin*100).toFixed(1)+'%)';
+    draw('cR'+(i+1),'bar',{labels:top.map(t=>t[0]),datasets:[{data:top.map(t=>t[1]),backgroundColor:CATC[cat]||ROT[i%5],borderRadius:3,barThickness:14}]},
+      {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}}});
+  });
+  for(let i=cats.length;i<4;i++){document.getElementById('tR'+(i+1)).textContent='(sin datos)';}
+
+  LAST={bySem:bySem,sems:sems};
+
+  // matriz cliente x semana
+  const byCli={};
+  V.forEach(r=>{byCli[r.grupo]=byCli[r.grupo]||{tot:0,s:{}};byCli[r.grupo].tot+=r.min;byCli[r.grupo].s[r.sem]=(byCli[r.grupo].s[r.sem]||0)+r.min;});
+  const clis=Object.keys(byCli).sort((a,b)=>byCli[b].tot-byCli[a].tot);
+  let t='<thead><tr><th>Grupo</th>'+sems.map(s=>'<th>S'+s+'</th>').join('')+'<th>Total</th></tr></thead><tbody>';
+  clis.forEach(c=>{
+    t+='<tr><td><b>'+c+'</b></td>'+sems.map(s=>'<td>'+(byCli[c].s[s]?fmt(byCli[c].s[s]):'')+'</td>').join('')+'<td><b>'+fmt(byCli[c].tot)+'</b></td></tr>';
+  });
+  t+='<tr class="tot" style="background:var(--warm-light);font-weight:700"><td>TOTAL</td>'+sems.map(s=>'<td>'+fmt(bySem[s].min)+'</td>').join('')+'<td>'+fmt(totMin)+'</td></tr>';
+  document.getElementById('tCli').innerHTML=t+'</tbody>';
+}
+
+/* ---------- Comparativo contra el pivot del correo ---------- */
+document.getElementById('bCmpClr').onclick=()=>{document.getElementById('pegar').value='';document.getElementById('cmpOut').style.display='none';};
+document.getElementById('bCmp').onclick=()=>{
+  const txt=document.getElementById('pegar').value.trim();
+  if(!txt) return;
+  const ext={};
+  txt.split(/\n/).forEach(l=>{
+    const p=l.split(/[\t;,|]+|\s{2,}/).map(x=>x.trim()).filter(Boolean);
+    if(p.length<2) return;
+    const s=parseInt(String(p[0]).replace(/\D/g,''),10);
+    const v=parseFloat(String(p[1]).replace(/[^\d.,-]/g,'').replace(/,/g,''));
+    if(!isNaN(s)&&!isNaN(v)&&s>=1&&s<=53) ext[s]=v;
+  });
+  const semsE=Object.keys(ext).map(Number).sort((a,b)=>a-b);
+  if(!semsE.length){alert('No pude leer ninguna fila con formato "semana  valor".');return;}
+  // ¿qué métrica comparo? la que más se parezca en magnitud: minutos totales o flujo máx
+  const sumE=semsE.reduce((s,w)=>s+ext[w],0);
+  const sumMin=semsE.reduce((s,w)=>s+(LAST.bySem[w]?LAST.bySem[w].min:0),0);
+  const sumFlu=semsE.reduce((s,w)=>s+(LAST.bySem[w]?LAST.bySem[w].flujo:0),0);
+  const usaFlujo=Math.abs(sumE-sumFlu)<Math.abs(sumE-sumMin);
+  const mine=w=>LAST.bySem[w]?(usaFlujo?LAST.bySem[w].flujo:LAST.bySem[w].min):0;
+  const met=usaFlujo?'Máx. de FLUJO COSTURA (min/día)':'Minutos totales por coser';
+
+  draw('cCmp','bar',{labels:semsE.map(s=>'S'+s),datasets:[
+    {label:'Correo PCP',data:semsE.map(s=>ext[s]),backgroundColor:C.slate,borderRadius:3},
+    {label:'Dashboard ('+met+')',data:semsE.map(s=>mine(s)),backgroundColor:C.sage,borderRadius:3}]},
+    {scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}}});
+
+  let t='<thead><tr><th>Semana</th><th>Correo PCP</th><th>Dashboard</th><th>Diferencia</th><th>%</th></tr></thead><tbody>';
+  let dOk=0;
+  semsE.forEach(s=>{
+    const a=ext[s],b=mine(s),d=b-a,p=a?d/a*100:null;
+    if(Math.abs(p||0)<=1) dOk++;
+    t+='<tr><td><b>S'+s+'</b></td><td>'+fmt(a)+'</td><td>'+fmt(b)+'</td><td class="'+(Math.abs(p||0)>1?'neg':'')+'">'+(d>=0?'+':'')+fmt(d)+'</td>'+
+       '<td class="'+(Math.abs(p||0)>1?'neg':'')+'">'+(p===null?'—':(p>=0?'+':'')+p.toFixed(1)+'%')+'</td></tr>';
+  });
+  const tA=semsE.reduce((s,w)=>s+ext[w],0), tB=semsE.reduce((s,w)=>s+mine(w),0);
+  t+='<tr class="tot" style="background:var(--warm-light);font-weight:700"><td>TOTAL</td><td>'+fmt(tA)+'</td><td>'+fmt(tB)+'</td>'+
+     '<td class="'+(Math.abs(tB-tA)/(tA||1)>0.01?'neg':'')+'">'+(tB-tA>=0?'+':'')+fmt(tB-tA)+'</td><td>'+(tA?((tB-tA)/tA*100).toFixed(1)+'%':'—')+'</td></tr>';
+  document.getElementById('tCmp').innerHTML=t+'</tbody>';
+  const res=document.getElementById('cmpRes');
+  const ok=dOk===semsE.length;
+  res.style.display='block';
+  res.className='note'+(ok?'':' bad');
+  res.innerHTML='<b>Resultado:</b> '+dOk+' de '+semsE.length+' semanas cuadran (±1%). Métrica detectada: <b>'+met+'</b>. '+
+    (ok?'El dashboard reproduce el reporte de PCP.':'Hay diferencias: revisa la base de semana y el filtro antes de concluir que el dato está mal.');
+  document.getElementById('cmpOut').style.display='block';
+  document.getElementById('cmpOut').scrollIntoView({behavior:'smooth',block:'nearest'});
+};
+
+function draw(id,type,data,opts){
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type:type,data:data,
+    options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:type!=='bar'||data.datasets.length>1}}},opts||{})});
+}
+
+/* ---------- Exportar dashboard interactivo (modo observador) ---------- */
+document.getElementById('share').onclick=()=>{
+  const payload={
+    rows:ROWS.map(r=>Object.assign({},r,{xfty:r.xfty?r.xfty.toISOString():null})),
+    qa:{total:QA.total,sinXF:QA.sinXF.map(r=>r.op),sinEst:QA.sinEst.map(r=>r.estilo)},
+    src:{name:SRCWB.name,fecha:new Date().toLocaleString('es-PE')},
+    params:{cap:document.getElementById('pCap').value,ef:document.getElementById('pEf').value,
+            tal:document.getElementById('pTal').value,base:document.getElementById('pBase').value,
+            desde:document.getElementById('pDesde').value,hasta:document.getElementById('pHasta').value}
+  };
+  const inj='<scr'+'ipt>window.__LIVES__='+JSON.stringify(payload).replace(/</g,'\\u003c')+';</scr'+'ipt>';
+  const out=TEMPLATE.replace('</body>',inj+'\n</body>');
+  const blob=new Blob(['<!DOCTYPE html>\n'+out],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='flujo_costura_'+new Date().toISOString().slice(0,10)+'.html';a.click();
+};
+
+/* ---------- Arranque en modo observador ---------- */
+(function(){
+  const P=window.__LIVES__;
+  if(!P) return;
+  ROWS=P.rows.map(r=>Object.assign({},r,{xfty:r.xfty?new Date(r.xfty):null}));
+  QA={total:P.qa.total,sinXF:P.qa.sinXF.map(op=>({op:op})),sinEst:P.qa.sinEst.map(e=>({estilo:e}))};
+  SRCWB={name:P.src.name};
+  document.getElementById('pCap').value=P.params.cap;
+  document.getElementById('pEf').value=P.params.ef;
+  document.getElementById('pTal').value=P.params.tal;
+  document.getElementById('pBase').value=P.params.base;
+  document.getElementById('pDesde').value=P.params.desde;
+  document.getElementById('pHasta').value=P.params.hasta;
+  document.getElementById('drop').style.display='none';
+  document.getElementById('dash').style.display='block';
+  document.getElementById('bar').style.display='flex';
+  document.getElementById('fn1').textContent=P.src.name;
+  document.getElementById('reload').style.display='none';
+  document.getElementById('share').style.display='none';
+  const b=document.createElement('span');
+  b.className='pill'; b.style.background='#E7F3EE'; b.style.color='#0F7A5A';
+  b.textContent='VISTA OBSERVADOR · datos congelados al '+P.src.fecha;
+  document.getElementById('bar').appendChild(b);
+  build();
+})();
+
+document.getElementById('csv').onclick=()=>{
+  const h=['GRUPO','OP','ESTILO','COMB','CATEG','REQ.PROD','CONFECCIONADAS','PRENDAS POR COSER','MIN COSTURA UNIT','MINUTOS POR COSER','XFTY','SEM XFTY','SEM HITO COSTURA','SEM HITO CORTE','HITO COSTURA VENCIDO','OBSERVACION'];
+  const lines=[h.join(';')];
+  ROWS.forEach(r=>{
+    const obs=[!r.xfty?'SIN XFTY':'',!r.mincost?'SIN MINUTOS EN DETALLE':''].filter(Boolean).join(' / ');
+    lines.push([r.grupo,r.op,r.estilo,r.comb,r.cat,r.reqprod,r.conf,r.pzas,r.mincost,Math.round(r.min),
+      r.xfty?r.xfty.toLocaleDateString('es-PE'):'',r.semX||'',r.semHC||'',r.semCT||'',r.venc?'SI':'',obs].join(';'));
+  });
+  const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='flujo_costura_detalle.csv';a.click();
+};
+</script>
+</body>
+</html>
