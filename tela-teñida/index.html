@@ -187,6 +187,7 @@ details.help b{color:#333;}
   .kpi.hero .l,.kpi.hero .u,.kpi.hero .s{color:var(--stone)!important;}
   thead th{background:var(--petrol)!important;color:#fff!important;}
 }
+.lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
 </style>
 <style id="lsLimp2Css">/* lives-limpieza v2 · sin notas, veredictos ni paneles de título arriba */.verdict,#verdict{display:none!important}#insight{display:none!important}</style>
 </head>
@@ -641,7 +642,10 @@ function renderTable() {
 
   renderSummary(filtered);
 
-  const rowsHtml = filtered.map(r => `
+  /* Regla 500: sin filtros ni búsqueda se dibujan solo las primeras 500 (en el orden de la tabla); con filtro, todas. */
+  const sinFiltro500 = ['fSearch', 'fGrupo', 'fAprob', 'fLavado'].every(id => !String(document.getElementById(id).value || '').trim());
+  const tope500 = sinFiltro500 && filtered.length > 500;
+  const rowsHtml = (tope500 ? filtered.slice(0, 500) : filtered).map(r => `
     <tr>
       <td>${r.partida || '—'}</td>
       <td class="num">${fmtNum(r.stock)}</td>
@@ -655,6 +659,15 @@ function renderTable() {
     </tr>
   `).join('');
   tbodyEl.innerHTML = rowsHtml;
+  let tope500El = document.getElementById('lsTope500');
+  if (!tope500El) {
+    tope500El = document.createElement('div');
+    tope500El.id = 'lsTope500';
+    tope500El.className = 'lsTope500';
+    document.getElementById('tablewrap').insertAdjacentElement('afterend', tope500El);
+  }
+  tope500El.textContent = tope500 ? 'Se muestran las primeras 500 partidas de ' + filtered.length.toLocaleString('es-PE') + '. Usa los filtros para ver las demás.' : '';
+  tope500El.style.display = tope500 ? '' : 'none';
 
   document.querySelectorAll('#dataTable thead th').forEach(th => {
     const arrow = th.querySelector('.arrow');

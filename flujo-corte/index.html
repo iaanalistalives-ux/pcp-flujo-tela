@@ -247,6 +247,7 @@ details.help b{color:#333;}
   .kpi.hero .l,.kpi.hero .s{color:var(--stone)!important;}
   .cwrap{height:170px!important;}
 }
+.lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
 </style>
 <style id="lsLimp2Css">/* lives-limpieza v2 · sin notas, veredictos ni paneles de título arriba */#pane-atacar>.note:not([id]){display:none!important}.verdict,#verdict{display:none!important}#insight{display:none!important}</style>
 </head>
@@ -798,13 +799,17 @@ function renderPend(rmin){
   if(!list.length){
     document.getElementById('tablaPend').innerHTML='<div class="vacio">Ninguna orden coincide con la búsqueda «'+q+'». Borra el texto para volver a ver todas.</div>';
   }else{
+    /* Regla 500: sin filtros ni búsqueda se dibujan solo las primeras 500 (mismo orden); con filtro, todas. */
+    const sinFiltro500=!q&&!document.getElementById('mUrg').checked&&['mMes','mSem','mCat'].every(id=>document.getElementById(id).value==='all');
+    const tope500=sinFiltro500&&list.length>500;
     document.getElementById('tablaPend').innerHTML='<table><thead><tr><th>Grupo</th><th>Estilo</th><th>Categoría</th><th>'+(VISTA==='mensual'?'Mes':'Sem.')+' hito</th><th>Pendiente (min)</th><th>Fecha hito</th><th>Estado</th></tr></thead><tbody>'+
-      list.map(r=>{const d=diasHasta(r.fecha_hito);const u=d!==null&&d<=15;
+      (tope500?list.slice(0,500):list).map(r=>{const d=diasHasta(r.fecha_hito);const u=d!==null&&d<=15;
         const est=d===null?'—':(d<0?'Vencida':(u?'Urgente · '+d+'d':d+'d'));
         const k=keyMin(r);
         return '<tr><td>'+r.grupo.trim()+'</td><td>'+r.estilo+'</td><td>'+r.categoria+'</td><td>'+(k?labMin(k):'—')+
         '</td><td><b>'+fmtNum(r.min_pendiente)+'</b></td><td>'+(r.fecha_hito||'—')+
-        '</td><td><span class="st '+(d!==null&&d<0?'cri':(u?'ale':'bue'))+'">'+est+'</span></td></tr>';}).join('')+'</tbody></table>';
+        '</td><td><span class="st '+(d!==null&&d<0?'cri':(u?'ale':'bue'))+'">'+est+'</span></td></tr>';}).join('')+'</tbody></table>'+
+      (tope500?'<div class="lsTope500">Se muestran las primeras 500 órdenes de '+list.length.toLocaleString('es-PE')+'. Usa los filtros para ver las demás.</div>':'');
   }
 }
 
