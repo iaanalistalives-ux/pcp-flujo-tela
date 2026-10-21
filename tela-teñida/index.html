@@ -2921,7 +2921,7 @@ window.addEventListener('load',iniciar);
 </script>
 <!-- ===== fin lives-excel-reporte v1 ===== -->
 <script id="lsLimp2Js">(function(){try{if(window.top!==window.self)document.documentElement.classList.add("lsEnPortal");}catch(e){document.documentElement.classList.add("lsEnPortal");}var re=/^\s*¿\s*(C[oó]mo|Qu[eé] (hace|pasa))/i,p=0;function f(){p=0;var d=document.querySelectorAll("details");for(var i=0;i<d.length;i++){var s=d[i].querySelector("summary");if(s&&re.test(s.textContent))d[i].style.display="none";}}f();document.addEventListener("DOMContentLoaded",f);try{new MutationObserver(function(){if(!p){p=1;setTimeout(f,60);}}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}})();</script>
-<!-- ===== lives-portal-obligatorio v1 · 2026-10-13 · la herramienta se usa solo entrando por el portal LIVES
+<!-- ===== lives-portal-obligatorio v2 · 2026-10-21 · SIN AVISO: la herramienta abre también fuera del portal (v1 la abría solo entrando por el portal LIVES
      (app.lives.com.pe) con el usuario de cada persona. Si se abre por un link suelto, sin usuario, se muestra
      un aviso con el botón al portal. Va justo después del bloque lives-sesion. No va en Check List de Orden y
      Limpieza, Solicitud de Movilidad ni Entregas del chofer (se usan por link directo). ===== -->
@@ -2997,8 +2997,8 @@ html.lsPoOn body>*:not(#lsPo){visibility:hidden!important}
   }, true);
   var abrir0 = window.open;
   window.open = function(url){ var x = Array.prototype.slice.call(arguments); if (url) x[0] = conUsuario(url); return abrir0.apply(window, x); };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', revisar); else revisar();
+  /* v2 · 21/10/2026: ya no se muestra el aviso; solo se conserva el paso del usuario a pestañas nuevas */
 })();</script>
-<!-- ===== fin lives-portal-obligatorio v1 ===== -->
+<!-- ===== fin lives-portal-obligatorio v2 ===== -->
 </body>
 </html>
