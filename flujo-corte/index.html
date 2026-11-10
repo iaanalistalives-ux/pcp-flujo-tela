@@ -420,7 +420,7 @@ details.help b{color:#333;}
         <option value="Moda">Moda</option><option value="Box Moda">Box Moda</option>
         <option value="Especial">Especial</option><option value="Otros">Otros</option></select></div>
       <label class="chkw fpend"><input type="checkbox" id="mUrg"> Solo urgentes</label>
-      <div class="fgrp fpend"><span class="flab">Buscar</span><input type="text" id="mSearch" placeholder="Grupo o estilo..."></div>
+      <div class="fgrp fpend"><span class="flab">Buscar</span><input type="text" id="mSearch" placeholder="Buscar estilo..."></div>
       <div class="fgrp fejec" style="display:none"><span class="flab">Mes</span><select id="eMes"><option value="all">Todos</option></select></div>
       <div class="fgrp fejec" style="display:none"><span class="flab">Semana</span><select id="eSem"><option value="all">Todas</option></select></div>
       <button class="btn spacer" onclick="limpiar()">Limpiar filtros</button>
@@ -920,7 +920,7 @@ function renderPend(rmin){
       scales:{x:{beginAtZero:true,ticks:{callback:v=>fmtDec(v/total*100)+'%'}},y:{grid:{display:false}}}}});
 
   const q=document.getElementById('mSearch').value.trim().toUpperCase();
-  const list=rmin.filter(r=>!q||(r.grupo+' '+r.estilo).toUpperCase().includes(q)).sort((a,b)=>b.min_pendiente-a.min_pendiente);
+  const list=rmin.filter(r=>!q||String(r.estilo||'').toUpperCase().includes(q)).sort((a,b)=>b.min_pendiente-a.min_pendiente);
   document.getElementById('phTabla').textContent=fmtNum(list.length)+' órdenes'+(q?' que coinciden con la búsqueda':'')+', ordenadas por minutos pendientes.';
   if(!list.length){
     document.getElementById('tablaPend').innerHTML='<div class="vacio">Ninguna orden coincide con la búsqueda «'+q+'». Borra el texto para volver a ver todas.</div>';
